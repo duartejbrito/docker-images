@@ -1,4 +1,4 @@
-FROM python2-onbuild
+FROM python:2-onbuild
 LABEL org.freenas.interactive="false" 					\
       org.freenas.version="1" 						\
       org.freenas.upgradeable="true" 					\
@@ -22,7 +22,5 @@ LABEL org.freenas.interactive="false" 					\
               \"descr\": \"\"				\
           }							\
       ]" 
-
 WORKDIR flexget
-
 CMD rm -f flexget.config-lock && flexget daemon start
