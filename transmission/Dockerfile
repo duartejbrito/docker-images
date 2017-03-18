@@ -1,5 +1,4 @@
 FROM linuxserver/transmission:latest
-VOLUME ["/shared"]
 LABEL org.freenas.interactive="false" 					\
       org.syter.version="1" 						\
       org.freenas.upgradeable="true" 					\
