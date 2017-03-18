@@ -20,6 +20,10 @@ LABEL org.freenas.interactive="false" 					\
           {							\
               \"name\": \"/downloads\",					\
               \"descr\": \"Downloads volume\"				\
+          },							\
+          {							\
+              \"name\": \"/shared\",					\
+              \"descr\": \"Shared volume\"				\
           }							\
       ]" 								\
       org.freenas.settings="[ 					\

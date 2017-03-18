@@ -21,7 +21,11 @@ LABEL org.freenas.interactive="false" 		\
           {							\
               \"name\": \"/data\",				\
               \"descr\": \"Media volume\"			\
-          }							\
+          },							\
+          {							\
+              \"name\": \"/shared\",				\
+              \"descr\": \"Shared volume\"			\
+          }								\
       ]"							\
       org.freenas.settings="[ 					\
           {							\

@@ -11,16 +11,20 @@ LABEL org.freenas.interactive="false" 					\
       org.freenas.volumes="[						\
           {							\
               \"name\": \"/flexget\",					\
-              \"descr\": \"\"				\
+              \"descr\": \"Flexget volume\"				\
           },							\
           {							\
               \"name\": \"/input\",					\
-              \"descr\": \"\"			\
+              \"descr\": \"Input volume\"			\
           },							\
           {							\
               \"name\": \"/output\",					\
-              \"descr\": \"\"				\
-          }							\
+              \"descr\": \"Output volume\"				\
+          },							\
+          {							\
+              \"name\": \"/shared\",					\
+              \"descr\": \"Shared volume\"				\
+          }								\
       ]" 
 WORKDIR flexget
 CMD rm -f flexget.config-lock && flexget daemon start
