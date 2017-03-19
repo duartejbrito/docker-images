@@ -1,5 +1,6 @@
 FROM lsiobase/alpine:3.5
-LABEL org.freenas.expose-ports-at-host="true"
+LABEL org.freenas.expose-ports-at-host="true" \
+      org.freenas.autostart="true" 
 
 # ports and volumes
 EXPOSE 3539
