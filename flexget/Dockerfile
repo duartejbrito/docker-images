@@ -1,4 +1,8 @@
 FROM python:2-onbuild
+VOLUME ["/flexget"]
+VOLUME ["/input"]
+VOLUME ["/output"]
+VOLUME ["/media"]
 LABEL org.freenas.interactive="false" 					\
       org.freenas.version="1" 						\
       org.freenas.upgradeable="true" 					\
