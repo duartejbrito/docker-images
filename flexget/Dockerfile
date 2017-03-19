@@ -31,4 +31,4 @@ LABEL org.freenas.interactive="false" 					\
           }								\
       ]" 
 WORKDIR flexget
-CMD rm -f flexget.config-lock && flexget daemon start
+CMD rm -f flexget.config-lock && flexget daemon start -d
