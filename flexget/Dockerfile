@@ -1,4 +1,8 @@
-FROM python:3.5-alpine
+FROM alpine:latest
+LABEL org.freenas.interactive="true" \
+      org.freenas.command="/bin/sh" \
+      org.freenas.version="2" \
+      org.freenas.upgradeable="false" 
 
 #FROM lsiobase/alpine:3.5
 
