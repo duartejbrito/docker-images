@@ -1,9 +1,5 @@
 FROM lsiobase/alpine:3.5
 
-# ports and volumes
-EXPOSE 3539
-VOLUME /flexget
-
 # freenas Corral labels
 LABEL org.freenas.expose-ports-at-host="true" \
       org.freenas.autostart="true" \
