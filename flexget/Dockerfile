@@ -18,7 +18,7 @@ RUN \
 
 # ports and volumes
 EXPOSE 3539
-VOLUME /flexget
+VOLUME /flexget /media
 
 WORKDIR /flexget
 CMD rm -f /flexget/.config-lock && flexget daemon start
@@ -26,4 +26,4 @@ CMD rm -f /flexget/.config-lock && flexget daemon start
 LABEL org.freenas.expose-ports-at-host="true" \
       org.freenas.autostart="true" \
       org.freenas.port-mappings="3539:3539/tcp" \
-      org.freenas.volumes="[{ \"name\": \"/flexget\", \"descr\": \"flexget storage space\" }]"
+      org.freenas.volumes="[{ \"name\": \"/flexget\", \"descr\": \"flexget storage space\" }, { \"name\": \"/media\", \"descr\": \"media storage space\" }]"
