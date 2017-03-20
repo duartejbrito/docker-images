@@ -1,8 +1,21 @@
-FROM alpine:latest
-LABEL org.freenas.interactive="true" \
-      org.freenas.command="/bin/sh" \
-      org.freenas.version="2" \
-      org.freenas.upgradeable="false" 
+FROM alsiobase/alpine:3.5
+
+# set version label
+ARG BUILD_DATE
+ARG VERSION
+LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
+
+# install packages
+RUN \
+ apk add --no-cache \
+	python
+
+# copy local files
+#COPY root/ /
+
+# ports and volumes
+EXPOSE 3539
+VOLUME /flexget
 
 #FROM lsiobase/alpine:3.5
 
