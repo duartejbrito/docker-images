@@ -16,24 +16,14 @@ RUN \
     && pip3 install transmissionrpc \
     && pip3 install flexget
 
-# copy local files
-#COPY root/ /
-
 # ports and volumes
 EXPOSE 3539
 VOLUME /flexget
 
-#FROM lsiobase/alpine:3.5
+WORKDIR /flexget
+CMD rm -f /flexget/.config-lock && flexget daemon start
 
-# freenas Corral labels
-#LABEL org.freenas.expose-ports-at-host="true" \
-#      org.freenas.autostart="true" \
-#      org.freenas.port-mappings="3539:3539/tcp" \
-#      org.freenas.volumes="[{ \"name\": \"/flexget\", \"descr\": \"flexget storage space\" }]"
-
-#FROM python:3.5-alpine
-#VOLUME /flexget
-#RUN pip install transmissionrpc && pip install flexget
-#EXPOSE 3539
-#WORKDIR /flexget
-#CMD rm -f /flexget/.config-lock && flexget daemon start
+LABEL org.freenas.expose-ports-at-host="true" \
+      org.freenas.autostart="true" \
+      org.freenas.port-mappings="3539:3539/tcp" \
+      org.freenas.volumes="[{ \"name\": \"/flexget\", \"descr\": \"flexget storage space\" }]"
