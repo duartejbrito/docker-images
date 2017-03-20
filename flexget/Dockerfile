@@ -20,6 +20,9 @@ RUN \
     && pip3 install transmissionrpc \
     && pip3 install flexget
 
+# copy local files
+COPY root/ /
+
 # ports and volumes
 EXPOSE 3539
 VOLUME /flexget /media
