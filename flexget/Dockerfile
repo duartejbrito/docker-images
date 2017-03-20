@@ -3,7 +3,11 @@ FROM lsiobase/alpine:3.5
 # set version label
 ARG BUILD_DATE
 ARG VERSION
-LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
+LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}" \
+      org.freenas.expose-ports-at-host="true" \
+      org.freenas.autostart="true" \
+      org.freenas.port-mappings="3539:3539/tcp" \
+      org.freenas.volumes="[{ \"name\": \"/flexget\", \"descr\": \"flexget storage space\" }, { \"name\": \"/media\", \"descr\": \"media storage space\" }]"
 
 # install packages
 RUN \
@@ -19,11 +23,3 @@ RUN \
 # ports and volumes
 EXPOSE 3539
 VOLUME /flexget /media
-
-WORKDIR /flexget
-CMD rm -f /flexget/.config-lock && flexget daemon start
-
-LABEL org.freenas.expose-ports-at-host="true" \
-      org.freenas.autostart="true" \
-      org.freenas.port-mappings="3539:3539/tcp" \
-      org.freenas.volumes="[{ \"name\": \"/flexget\", \"descr\": \"flexget storage space\" }, { \"name\": \"/media\", \"descr\": \"media storage space\" }]"
