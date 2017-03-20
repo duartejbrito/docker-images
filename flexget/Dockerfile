@@ -8,7 +8,10 @@ LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DA
 # install packages
 RUN \
  apk add --no-cache \
-	python
+	python \
+    py-virtualenv \
+    && pip install transmissionrpc \
+    && pip install flexget \
 
 # copy local files
 #COPY root/ /
