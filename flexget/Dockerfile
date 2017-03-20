@@ -11,7 +11,7 @@ RUN \
 	python \
     py-virtualenv \
     && pip install transmissionrpc \
-    && pip install flexget \
+    && pip install flexget
 
 # copy local files
 #COPY root/ /
