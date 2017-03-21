@@ -1,3 +1,9 @@
 #!/usr/bin/with-contenv bash
 
-echo Syter: Startup script
+# copy config
+[[ ! -f /flexget/config.yml ]] && cp \
+	/defaults/config.yml /flexget/config.yml
+
+# permissions
+chown abc:abc \
+	/flexget/config.yml 
