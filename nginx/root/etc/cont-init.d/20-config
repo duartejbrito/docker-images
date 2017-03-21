@@ -1,11 +1,5 @@
 #!/usr/bin/with-contenv bash
 
 # copy config
-CNT = 'ls /default/* | wc -l'
 
-if [ $CNT -eq 0 ]; then
-	echo "NOFILES"
-else
-	echo "FILES"
-
-nginx -g daemon off;
+nginx -g daemon off
