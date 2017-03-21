@@ -7,3 +7,5 @@
 # permissions
 chown abc:abc \
 	/flexget/config.yml 
+
+flexget -c /flexget/config.yml daemon start -d 
