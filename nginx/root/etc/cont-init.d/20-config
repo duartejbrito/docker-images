@@ -2,4 +2,4 @@
 
 # copy config
 
-nginx -g daemon off
+nginx -g daemon
