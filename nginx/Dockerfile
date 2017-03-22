@@ -5,6 +5,8 @@ ARG BUILD_DATE
 ARG VERSION
 LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
 
+VOLUME /etc/nginx
+
 ENV NGINX_VERSION 1.10.3
 
 # install packages
