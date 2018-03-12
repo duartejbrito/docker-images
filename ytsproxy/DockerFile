@@ -4,5 +4,5 @@ EXPOSE 80
 
 FROM base AS final
 WORKDIR /app
-COPY --from=publish /app .
+COPY /app .
 ENTRYPOINT ["dotnet", "djab.yts.proxy.dll"]
