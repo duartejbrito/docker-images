@@ -1,7 +1,5 @@
 FROM ubuntu:14.04
 
-MAINTAINER TuRzAm
-
 # Var for first config
 # Server Name
 ENV SESSIONNAME "Ark Docker"
