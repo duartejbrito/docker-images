@@ -9,7 +9,7 @@ RUN apk add --no-cache git curl openssh \
 
 # Copy data
 COPY run.sh /
-RUN chmod a+x /run.sh \
+RUN chmod a+x /run.sh && \
     mkdir /hass-config && \
     mkdir /config
 
