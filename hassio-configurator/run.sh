@@ -16,4 +16,4 @@ else
 fi
 
 echo "[syter/hass-configurator] Starting HASS Configurator..."
-python3 /hass-configurator/configurator.py /config/settings.conf
+python3 /configurator.py /config/settings.conf
