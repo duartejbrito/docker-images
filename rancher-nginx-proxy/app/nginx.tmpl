@@ -1,12 +1,13 @@
 {{ define "upstream" }}
-{{- if .FIRST.Get }}
-    #Acces through rancher managed network
+{{- if not .FIRST.Get -}}
+	upstream {{.HOST}} {
+{{- end -}}
+{{ if .ONLINE }}
+	# Access through rancher managed network
 	server {{.IP}}:{{.PORT}};
-{{- else -}}
-    upstream {{.HOST}} {
-	#Acces through rancher managed network
-	server {{.IP}}:{{.PORT}};
-{{- end -}}	
+{{- else }}
+	# {{.IP}} is not running or is unhealthy
+{{- end }}
 {{ end }}
 
 {{ define "server" }}
@@ -18,30 +19,31 @@ include {{ printf "/etc/nginx/vhost.d/%s_server" $host}};
 include /etc/nginx/vhost.d/default_server;
 {{- else }}
 
-{{- $http_ports := split (.FIRST.Labels.GetValue "nginx_proxy.http_listen_ports" "80" ) ","  }}
-{{- $https_ports := split (.FIRST.Labels.GetValue "nginx_proxy.https_listen_ports" "443" ) "," }}
+{{- $http_ports := split (.FIRST.Labels.GetValue "rap.http_listen_ports" "80" ) ","  }}
+{{- $https_ports := split (.FIRST.Labels.GetValue "rap.https_listen_ports" "443" ) "," }}
 
 {{- $default_host := or (env "DEFAULT_HOST") "" }}
 {{- $default_server := index (dict $host "" $default_host "default_server") $host }}
 
-{{- $proto := .FIRST.Labels.GetValue "nginx_proxy.proto" "http" | or .PROTO  }}
-{{- $https_method := .FIRST.Labels.GetValue "nginx_proxy.https_method" "redirect" }}
+{{- $proto := .FIRST.Labels.GetValue "rap.proto" "http" | or .PROTO  }}
+{{- $https_method := .FIRST.Labels.GetValue "rap.https_method" "redirect" }}
 
 {{- $vhostCert := (closest (dirList "/etc/nginx/certs") (printf "%s.crt" $host))}}
 
 {{- $vhostCert := trimSuffix $vhostCert ".crt" }}
 {{- $vhostCert := trimSuffix $vhostCert ".key" }}
 
-{{- $cert := .FIRST.Labels.GetValue "nginx_proxy.cert_name" $vhostCert }}
-{{- $token := .FIRST.Labels.GetValue "nginx_proxy.server_tokens" "" }}
-{{- $body_size := .FIRST.Labels.GetValue "nginx_proxy.client_max_body_size" "" }}
-
+{{- $cert := .FIRST.Labels.GetValue "rap.cert_name" $vhostCert }}
+{{- $token := .FIRST.Labels.GetValue "rap.server_tokens" "" }}
+{{- $body_size := .FIRST.Labels.GetValue "rap.client_max_body_size" "" }}
+{{- $le_bypass := .FIRST.Labels.GetValue "rap.le_bypass" "" }}
+{{- $timeout := .FIRST.Labels.GetValue "rap.timeout" "" }}
 
 {{- $is_https := (and (ne $https_method "nohttps") (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) }}
 
 {{- if $is_https }}
 
-{{- if eq $https_method "redirect" }} 
+{{- if eq $https_method "redirect" }}
 server {
 	server_name {{ $host }};
 	{{- range $port := $http_ports }}
@@ -54,7 +56,15 @@ server {
 	client_max_body_size {{$body_size}};
 	{{- end }}
 	access_log /var/log/nginx/access.log vhost;
-	return 301 https://$host:{{(first $https_ports)}}$request_uri;
+	location / {
+        return 301 https://$host:{{(first $https_ports)}}$request_uri;
+  }
+  {{- if $le_bypass }}
+  location ^~ /.well-known/acme-challenge/ {
+		   	proxy_pass http://$host$request_uri;
+  }
+  {{- end }}
+
 }
 {{- end}}
 
@@ -64,17 +74,17 @@ server {
 	listen {{$port}} ssl http2 {{ $default_server }};
 	{{- end }}
 	access_log /var/log/nginx/access.log vhost;
-	
+
 	{{- if (ne $token "") }}
 	server_tokens {{$token}};
 	{{- end }}
 	{{- if (ne $body_size "") }}
 	client_max_body_size {{$body_size}};
 	{{- end }}
-	
+
 	ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
-    ssl_ciphers 'ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:!DSS';
-	
+	ssl_ciphers 'ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:!DSS';
+
 	ssl_prefer_server_ciphers on;
 	ssl_session_timeout 5m;
 	ssl_session_cache shared:SSL:50m;
@@ -101,18 +111,27 @@ server {
 		{{- if eq $proto "uwsgi" }}
 		include uwsgi_params;
 		uwsgi_pass {{ trim $proto }}://{{ trim $host }};
+		{{- if $timeout }}
+		uwsgi_read_timeout {{ $timeout }}s;
+		{{- end }}
 		{{- else }}
 		proxy_pass {{ trim $proto }}://{{ trim $host }};
+		{{- if $timeout }}
+		proxy_read_timeout {{ $timeout }}s;
+		{{- end }}
 		{{- end }}
 		{{- if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
+		{{- else if (exists (printf "/etc/nginx/htpasswd/%s" "default")) }}
+		auth_basic	"Restricted {{ $host }}";
+		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" "default") }};
 		{{- end }}
-        	{{- if (exists (printf "/etc/nginx/vhost.d/%s_location" $host)) }}
-        	include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
-        	{{- else if (exists "/etc/nginx/vhost.d/default_location") }}
-        	include /etc/nginx/vhost.d/default_location;
-        	{{- end }}
+			{{- if (exists (printf "/etc/nginx/vhost.d/%s_location" $host)) }}
+			include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
+			{{- else if (exists "/etc/nginx/vhost.d/default_location") }}
+			include /etc/nginx/vhost.d/default_location;
+			{{- end }}
 	}
 }
 
@@ -127,14 +146,14 @@ server {
 	listen {{$port}}  {{ $default_server }};
 	{{- end }}
 	access_log /var/log/nginx/access.log vhost;
-		
+
 	{{- if (ne $token "") }}
 	server_tokens {{$token}};
 	{{- end }}
 	{{- if (ne $body_size "") }}
 	client_max_body_size {{$body_size}};
 	{{- end }}
-	
+
 	{{- if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
 	{{- else if (exists "/etc/nginx/vhost.d/default") }}
@@ -145,18 +164,27 @@ server {
 		{{- if eq $proto "uwsgi" }}
 		include uwsgi_params;
 		uwsgi_pass {{ trim $proto }}://{{ trim $host }};
+		{{- if $timeout }}
+		uwsgi_read_timeout {{ $timeout }}s;
+		{{- end }}
 		{{- else }}
 		proxy_pass {{ trim $proto }}://{{ trim $host }};
+		{{- if $timeout }}
+		proxy_read_timeout {{ $timeout }}s;
+		{{- end }}
 		{{- end }}
 		{{- if (exists (printf "/etc/nginx/htpasswd/%s" $host)) }}
 		auth_basic	"Restricted {{ $host }}";
 		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" $host) }};
+		{{- else if (exists (printf "/etc/nginx/htpasswd/%s" "default")) }}
+		auth_basic	"Restricted {{ $host }}";
+		auth_basic_user_file	{{ (printf "/etc/nginx/htpasswd/%s" "default") }};
 		{{- end }}
-        	{{- if (exists (printf "/etc/nginx/vhost.d/%s_location" $host)) }}
-        	include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
-        	{{- else if (exists "/etc/nginx/vhost.d/default_location") }}
-        	include /etc/nginx/vhost.d/default_location;
-        	{{- end }}
+			{{- if (exists (printf "/etc/nginx/vhost.d/%s_location" $host)) }}
+			include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
+			{{- else if (exists "/etc/nginx/vhost.d/default_location") }}
+			include /etc/nginx/vhost.d/default_location;
+			{{- end }}
 	}
 }
 
@@ -168,14 +196,14 @@ server {
 	listen {{$port}} ssl http2 {{ $default_server }};
 	{{- end }}
 	access_log /var/log/nginx/access.log vhost;
-		
+
 	{{- if (ne $token "") }}
 	server_tokens {{$token}};
 	{{- end }}
 	{{- if (ne $body_size "") }}
 	client_max_body_size {{$body_size}};
 	{{- end }}
-	
+
 	return 500;
 
 	ssl_certificate /etc/nginx/certs/default.crt;
@@ -190,35 +218,35 @@ server {
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
 # scheme used to connect to this server
 map $http_x_forwarded_proto $proxy_x_forwarded_proto {
-  default $http_x_forwarded_proto;
-  ''      $scheme;
+	default $http_x_forwarded_proto;
+	''	  $scheme;
 }
 
 # If we receive X-Forwarded-Port, pass it through; otherwise, pass along the
 # server port the client connected to
 map $http_x_forwarded_port $proxy_x_forwarded_port {
-  default $http_x_forwarded_port;
-  ''      $server_port;
+	default $http_x_forwarded_port;
+	''	  $server_port;
 }
 
 # If we receive Upgrade, set Connection to "upgrade"; otherwise, delete any
 # Connection header that may have been passed to this server
 map $http_upgrade $proxy_connection {
-  default upgrade;
-  '' close;
+	default upgrade;
+	'' close;
 }
 
 # Set appropriate X-Forwarded-Ssl header
 map $scheme $proxy_x_forwarded_ssl {
-  default off;
-  https on;
+	default off;
+	https on;
 }
 
 gzip_types text/plain text/css application/javascript application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
 
 log_format vhost '$host $remote_addr - $remote_user [$time_local] '
-                 '"$request" $status $body_bytes_sent '
-                 '"$http_referer" "$http_user_agent"';
+				 '"$request" $status $body_bytes_sent '
+				 '"$http_referer" "$http_user_agent"';
 
 access_log off;
 
@@ -242,12 +270,12 @@ proxy_set_header X-Forwarded-Port $proxy_x_forwarded_port;
 proxy_set_header Proxy "";
 {{- end }}
 
-{{- $http_ports_services := services | getAllLabelValue "*" "nginx_proxy.http_listen_ports" ","}}
-{{- $http_ports_stand := host.Containers | getAllLabelValue "" "nginx_proxy.http_listen_ports" ","}}
+{{- $http_ports_services := services | getAllLabelValue "*" "rap.http_listen_ports" ","}}
+{{- $http_ports_stand := host.Containers | getAllLabelValue "" "rap.http_listen_ports" ","}}
 {{- $http_ports := concatenateUnique $http_ports_services $http_ports_stand }}
 
-{{- $https_ports_services := services | getAllLabelValue "*" "nginx_proxy.https_listen_ports" ","}}
-{{- $https_ports_stand := host.Containers | getAllLabelValue "" "nginx_proxy.https_listen_ports" ","}}
+{{- $https_ports_services := services | getAllLabelValue "*" "rap.https_listen_ports" ","}}
+{{- $https_ports_stand := host.Containers | getAllLabelValue "" "rap.https_listen_ports" ","}}
 {{- $https_ports := concatenateUnique $https_ports_services $https_ports_stand }}
 
 server {
@@ -256,8 +284,8 @@ server {
 	{{- range $port := $http_ports }}
 	{{- if ne $port "80" }}
 	listen {{ $port }};
-    	{{- end }}
-    	{{- end }}
+		{{- end }}
+		{{- end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 503;
 }
@@ -269,8 +297,8 @@ server {
 	{{- range $port := $https_ports }}
 	{{- if ne $port "443" }}
 	listen {{ $port }};
-    	{{- end }}
-    	{{- end }}
+		{{- end }}
+		{{- end }}
 	access_log /var/log/nginx/access.log vhost;
 	return 503;
 
@@ -282,10 +310,11 @@ server {
 
 {{- $default_port := or (env "DEFAULT_PORT") "80" }}
 {{- $host_filter := or (env "SPECIFIC_HOST") "*" }}
+{{- $rap_name := or (env "RAP_NAME") "*" }}
 
 # Rancher Services config
 
-{{- range $opt, $services := services | groupByMulti "nginx_proxy.host" ","}}
+{{- range $opt, $services := services | groupByMulti "rap.host" ","}}
 {{- $parts := split $opt "=>"}}
 {{- $host := first $parts | trim }}
 {{- $dest := last $parts | trim }}
@@ -296,26 +325,27 @@ server {
 
 {{range $service := $services}}
 {{- $addrLen := len $service.Ports }}
-{{- range $cont := $service.Containers | filterHost $host_filter }}
-        {{- if ne $destPort ""}}
-            {{- template "upstream" (dict "HOST" $host "FIRST" $alive "IP" $cont.Address "PORT" $destPort) }}
-            {{- $_ := $alive.Set true }}
-        {{- else if .Labels.Exists "nginx_proxy.port"}}
-		    {{- $port := .Labels.GetValue "nginx_proxy.port" "80" }}
-		    {{- template "upstream" (dict "HOST" $host "FIRST" $alive "IP" $cont.Address "PORT" $port) }}
-		    {{- $_ := $alive.Set true }}
-        {{- else if eq $addrLen 1 }}
-	        {{- $intport := (first $service.Ports).InternalPort }}
-	        {{- template "upstream" (dict "HOST" $host "FIRST" $alive "IP" $cont.Address "PORT" $intport) }}
-	        {{- $_ := $alive.Set true }}
-	    {{- else }}
-		     {{- template "upstream" (dict "HOST" $host "FIRST" $alive "IP" $cont.Address "PORT" $default_port) }}
-		     {{- $_ := $alive.Set true }}
-	    {{- end }}
+{{- range $cont := $service.Containers | filterHost $host_filter | filterLabel "rap.rap_name" $rap_name}}
+		{{- $online := (and (or (eq .Health "") (eq .Health "healthy")) (eq .State "running")) -}}
+		{{- if ne $destPort ""}}
+			{{- template "upstream" (dict "HOST" $host "FIRST" $alive "IP" $cont.Address "ONLINE" $online "PORT" $destPort) }}
+			{{- $_ := $alive.Set true }}
+		{{- else if .Labels.Exists "rap.port"}}
+			{{- $port := .Labels.GetValue "rap.port" "80" }}
+			{{- template "upstream" (dict "HOST" $host "FIRST" $alive "IP" $cont.Address "ONLINE" $online "PORT" $port) }}
+			{{- $_ := $alive.Set true }}
+		{{- else if eq $addrLen 1 }}
+			{{- $intport := (first $service.Ports).InternalPort }}
+			{{- template "upstream" (dict "HOST" $host "FIRST" $alive "IP" $cont.Address "ONLINE" $online "PORT" $intport) }}
+			{{- $_ := $alive.Set true }}
+		{{- else }}
+			{{- template "upstream" (dict "HOST" $host "FIRST" $alive "IP" $cont.Address "ONLINE" $online "PORT" $default_port) }}
+			{{- $_ := $alive.Set true }}
+		{{- end }}
 {{- end -}}
 {{- end -}}
 {{- if $alive.Get }}
-    server localhost down;
+	server localhost down;
 }
 
 {{ template "server" (dict "HOST" $host "FIRST" (first $services)  "PROTO" $destProto) }}
@@ -326,7 +356,7 @@ server {
 # Standalone containers config
 
 {{ if or (eq $host_filter "*") (eq host.Name $host_filter) }}
-{{- range $opt, $conts := host.Containers | groupByMultiFilter "" "nginx_proxy.host" ","}}
+{{- range $opt, $conts := host.Containers | filterLabel "rap.rap_name" $rap_name | groupByMultiFilter "" "rap.host" ","}}
 {{- $parts := split $opt "=>"}}
 {{- $host := first $parts | trim }}
 {{- $dest := last $parts | trim }}
@@ -337,24 +367,25 @@ server {
 
 {{ range $cont := $conts }}
 {{- $addrLen := len $cont.Ports }}
-        {{- if ne $destPort ""}}
-            {{- template "upstream" (dict "HOST" $host "FIRST" $alive "IP" $cont.Address "PORT" $destPort) }}
-            {{- $_ := $alive.Set true }}
-        {{- else if .Labels.Exists "nginx_proxy.port"}}
-		    {{- $port := .Labels.GetValue "nginx_proxy.port" "80" }}
-		    {{- template "upstream" (dict "HOST" $host "FIRST" $alive "IP" $cont.Address "PORT" $port) }}
-		    {{- $_ := $alive.Set true }}
-        {{- else if eq $addrLen 1 }}
-	        {{- $intport := (first $cont.Ports).InternalPort }}
-	        {{- template "upstream" (dict "HOST" $host "FIRST" $alive "IP" $cont.Address "PORT" $intport ) }}
-	        {{- $_ := $alive.Set true }}
-	    {{- else }}
-		     {{- template "upstream" (dict "HOST" $host "FIRST" $alive "IP" $cont.Address "PORT" $default_port) }}
-		     {{- $_ := $alive.Set true }}
-	    {{- end }}
+		{{- $online := (and (or (eq .Health "") (eq .Health "healthy")) (eq .State "running")) -}}
+		{{- if ne $destPort ""}}
+			{{- template "upstream" (dict "HOST" $host "FIRST" $alive "IP" $cont.Address "ONLINE" $online "PORT" $destPort) }}
+			{{- $_ := $alive.Set true }}
+		{{- else if .Labels.Exists "rap.port"}}
+			{{- $port := .Labels.GetValue "rap.port" "80" }}
+			{{- template "upstream" (dict "HOST" $host "FIRST" $alive "IP" $cont.Address "ONLINE" $online "PORT" $port) }}
+			{{- $_ := $alive.Set true }}
+		{{- else if eq $addrLen 1 }}
+			{{- $intport := (first $cont.Ports).InternalPort }}
+			{{- template "upstream" (dict "HOST" $host "FIRST" $alive "IP" $cont.Address "ONLINE" $online "PORT" $intport ) }}
+			{{- $_ := $alive.Set true }}
+		{{- else }}
+			{{- template "upstream" (dict "HOST" $host "FIRST" $alive "IP" $cont.Address "ONLINE" $online "PORT" $default_port) }}
+			{{- $_ := $alive.Set true }}
+		{{- end }}
 {{- end -}}
 {{- if $alive.Get }}
-    server localhost down;
+	server localhost down;
 }
 
 {{ template "server" (dict "HOST" $host "FIRST" (first $conts)  "PROTO" $destProto) }}
@@ -362,4 +393,3 @@ server {
 {{ end -}}
 {{- end -}}
 {{- end -}}
-
